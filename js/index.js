@@ -1,3 +1,18 @@
+let controller = new AbortController();
+const cancelButton = document.getElementById('cancelButton');
+
+cancelButton.addEventListener('click', () => {
+    controller.abort(); // Скасовуємо запит
+    console.log('Запит скасовано');
+
+    fetch('http://localhost:8000/cancel', {
+        method: 'POST',
+    }).then((res) => {
+        console.log('Запит скасовано на сервері')
+    }).catch((error) => {
+        console.error('Помилка при скасуванні запиту на сервері:', error)
+    })
+});
 
 
 
@@ -41,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    controller = new AbortController();
     const imageInput = document.getElementById('imageInput').files;
     const processType = document.getElementById('processType').value;
     const form = document.getElementById("uploadForm")
@@ -88,7 +104,8 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         // Відправка даних на сервер через fetch
         const response = await fetch(`http://localhost:8000/upload-multiple`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            signal: controller.signal // Додаємо сигнал скасування
         });
 
         if (!response.ok) {
