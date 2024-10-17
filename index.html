@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Multiple Images</title>
+
+    <link href="./style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <h1>Завантажте зображення</h1>
+    <form id="uploadForm">
+      <input
+        type="file"
+        id="imageInput"
+        name="images"
+        accept="image/*"
+        multiple
+        required
+      />
+
+      <!-- Вибір типу обробки зображення -->
+      <label for="processType">Виберіть тип обробки:</label>
+      <select id="processType" name="processType">
+        <option value="resize">Змінити розмір</option>
+        <option value="grayscale">Чорно-біле</option>
+        <option value="rotate">Повернути на 90°</option>
+        <option value="blur">Розмиття</option>
+      </select>
+
+      <button type="submit">Завантажити</button>
+    </form>
+
+    <h2>Результат:</h2>
+    <ul id="resultImages"></ul>
+
+    <script src="./js/index.js"></script>
+  </body>
+</html>
