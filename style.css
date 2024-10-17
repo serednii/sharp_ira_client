@@ -4,3 +4,86 @@
     flex-wrap: wrap;
     gap: 10px;
 }
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #4A90E2;
+}
+
+form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+input[type="file"],
+select,
+input[type="number"],
+button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+button {
+    background-color: #4A90E2;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #357ABD;
+}
+
+.options {
+    display: none;
+    /* Сховати параметри за замовчуванням */
+}
+
+.options label {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+h2 {
+    margin-top: 20px;
+    color: #4A90E2;
+}
+
+#resultImages {
+    list-style: none;
+    padding: 0;
+}
+
+#resultImages li {
+    margin: 10px 0;
+}
+
+#resultImages img {
+    max-width: 100%;
+    border: 2px solid #4A90E2;
+    border-radius: 5px;
+}
