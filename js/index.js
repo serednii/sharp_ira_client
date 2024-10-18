@@ -1,5 +1,6 @@
 let controller = new AbortController();
 const cancelButton = document.getElementById('cancelButton');
+const processingBar = document.querySelector('.processing-bar')
 
 cancelButton.addEventListener('click', () => {
     controller.abort(); // Скасовуємо запит
@@ -63,9 +64,9 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     const formData = new FormData(form);
 
     // Додаємо зображення до formData
-    for (let i = 0; i < imageInput.length; i++) {
-        formData.append('images', imageInput[i]);
-    }
+    // for (let i = 0; i < imageInput.length; i++) {
+    //     formData.append('images', imageInput[i]);
+    // }
 
     // Додаємо додаткові налаштування залежно від типу обробки
     // switch (processType) {
@@ -100,6 +101,9 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     // }
     const resultImagesDiv = document.getElementById('resultImages');
     resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
+
+    checkProcessingStatus()
+
     try {
         // Відправка даних на сервер через fetch
         const response = await fetch(`http://localhost:8000/upload-multiple`, {
@@ -131,6 +135,32 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     }
 });
 
+async function checkProcessingStatus() {
+    const interval = setInterval(async () => {
+        const response = await fetch('http://localhost:8000/status');
+        if (!response.ok) {
+            return
+        }
+        const status = await response.json();
+        const percent = Math.round((100 / status.total) * status.progress);
+        processingBar.innerText = `${percent}%`;
+        processingBar.style.width = `${percent}%`
+        console.log(status, percent)
+        // Відображаємо прогрес
+        // resultImages.innerHTML = ''; // Очищаємо попередні результати
+        // for (const jobId in status) {
+        //     const { progress, status: jobStatus } = status[jobId];
+        //     const li = document.createElement('li');
+        //     li.textContent = `Job ID: ${jobId}, Status: ${jobStatus}, Progress: ${progress}%`;
+        //     resultImages.appendChild(li);
+        // }
+
+        // Якщо всі завдання завершені, зупиняємо перевірку статусу
+        if (status.status === 'cancelled') {
+            clearInterval(interval);
+        }
+    }, 100); // Запитуємо статус кожні 2 секунди
+}
 
 
 
