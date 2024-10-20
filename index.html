@@ -26,11 +26,11 @@
           <!-- Вибір типу обробки зображення -->
           <label for="processType">Виберіть тип обробки:</label>
           <select id="processType" name="processType">
+            <option value="brightness">Яскравість</option>
             <option value="blur">Розмиття</option>
             <option value="resize">Змінити розмір</option>
             <option value="grayscale">Чорно-біле</option>
             <option value="rotate">Повернути на 90°</option>
-            <option value="brightness">Яскравість</option>
             <option value="contrast">Контраст</option>
             <option value="crop">Обрізати</option>
           </select>
@@ -104,6 +104,7 @@
             style="width: 0%"
           ></div>
           <p class="w3-container processing-percent">0%</p>
+          <a id="download-archive"  download>Завантажити архів</a>
         </div>
       </header>
       <main>

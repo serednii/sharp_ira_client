@@ -2,7 +2,24 @@ let controller = new AbortController();
 const cancelButton = document.getElementById('cancelButton');
 const processingProgress = document.querySelector('.processing-progress')
 const processingPercent = document.querySelector('.processing-percent')
+const downloadArchive = document.getElementById('download-archive');
+downloadArchive.addEventListener('click', function () {
+    this.style.display = "none"
+    console.log(this)
+})
 
+cancelButton.addEventListener('click', () => {
+    controller.abort(); // Скасовуємо запит
+    console.log('Запит скасовано');
+
+    fetch('http://localhost:8000/download-archive', {
+        method: 'GET',
+    }).then((res) => {
+        console.log('Запит скасовано на сервері')
+    }).catch((error) => {
+        console.error('Помилка при скасуванні запиту на сервері:', error)
+    })
+});
 
 cancelButton.addEventListener('click', () => {
     controller.abort(); // Скасовуємо запит
@@ -76,43 +93,9 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     const processType = document.getElementById('processType').value;
     const form = document.getElementById("uploadForm")
     const formData = new FormData(form);
+    formData.append('name', imageInput[0].name);
+    console.log(formData)
 
-    // Додаємо зображення до formData
-    // for (let i = 0; i < imageInput.length; i++) {
-    //     formData.append('images', imageInput[i]);
-    // }
-
-    // Додаємо додаткові налаштування залежно від типу обробки
-    // switch (processType) {
-    //     case 'resize':
-    //         const resizeWidth = document.getElementById('resizeWidth').value;
-    //         const resizeHeight = document.getElementById('resizeHeight').value;
-    //         formData.append('resizeWidth', resizeWidth);
-    //         formData.append('resizeHeight', resizeHeight);
-    //         break;
-    //     case 'rotate':
-    //         const rotateDegrees = document.getElementById('rotateDegrees').value;
-    //         formData.append('rotateDegrees', rotateDegrees);
-    //         break;
-    //     case 'blur':
-    //         const blurLevel = document.getElementById('blurLevel').value;
-    //         formData.append('blurLevel', blurLevel);
-    //         break;
-    //     case 'brightness':
-    //         const brightnessLevel = document.getElementById('brightnessLevel').value;
-    //         formData.append('brightnessLevel', brightnessLevel);
-    //         break;
-    //     case 'contrast':
-    //         const contrastLevel = document.getElementById('contrastLevel').value;
-    //         formData.append('contrastLevel', contrastLevel);
-    //         break;
-    //     case 'crop':
-    //         const cropWidth = document.getElementById('cropWidth').value;
-    //         const cropHeight = document.getElementById('cropHeight').value;
-    //         formData.append('cropWidth', cropWidth);
-    //         formData.append('cropHeight', cropHeight);
-    //         break;
-    // }
     const resultImagesDiv = document.getElementById('resultImages');
     resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
 
@@ -132,17 +115,31 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
         // Отримання оброблених зображень як Blob
         const blobs = await response.json();
-        // const resultImagesDiv = document.getElementById('resultImages');
-        // resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
 
-        blobs.forEach((blobUrl) => {
+        downloadArchive.href = blobs.downloadLink;
+        downloadArchive.style.display = "inline-block"
+
+        blobs.processedImages.forEach((blobUrl) => {
+            console.log(blobUrl)
             const li = document.createElement('li'); // Створюємо елемент списку
             const img = document.createElement('img'); // Створюємо елемент зображення
-            img.src = blobUrl;
+            // const a = document.createElement('a');
+            // a.href = blobUrl[0].imageUrl
+            // a.target = "blank"
+            // a.download = blobUrl[0].fileName;  // Ім'я файлу для завантаження
+            // a.textContent = 'Завантажити зображення';  // Текст посилання
+
+            img.src = blobUrl[0].imageBase64;
             img.alt = 'Оброблене зображення';
             img.style.maxWidth = '300px'; // Задаємо розмір для відображення
+            // li.appendChild(a)
             li.appendChild(img); // Вставляємо зображення у список
             resultImagesDiv.appendChild(li); // Додаємо елемент списку у UL
+            // Автоматичний клік, щоб завантажити файл
+            // setTimeout(() => {
+            //     // Автоматичний клік для завантаження файлу
+            //     a.click;
+            // }, 500);  // Невелика затримка в 100 мс
         });
     } catch (error) {
         console.error('Сталася помилка:', error);
@@ -151,21 +148,26 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
 async function checkProcessingStatus() {
     const interval = setInterval(async () => {
-        const response = await fetch('http://localhost:8000/status');
-        if (!response.ok) {
-            return
-        }
+        try {
+            const response = await fetch('http://localhost:8000/status');
+            if (!response.ok) {
+                return
+            }
 
-        const status = await response.json();
+            const status = await response.json();
 
-        const percent = Math.round((100 / status.total) * status.progress);
-        processingProgress.style.width = `${percent}%`;
-        processingPercent.innerText = `${percent}%`;
+            const percent = Math.round((100 / status.total) * status.progress);
+            processingProgress.style.width = `${percent}%`;
+            processingPercent.innerText = `${percent}%`;
 
-        console.log(status, percent)
+            console.log(status, percent)
 
-        if (status.status === 'cancelled') {
-            clearInterval(interval);
+            if (status.status === 'cancelled') {
+                clearInterval(interval);
+            }
+        } catch (error) {
+            console.error('Помилка під час перевірки статусу обробки:', error);
+            clearInterval(interval);  // Зупиняємо інтервал у разі помилки
         }
 
         // Відображаємо прогрес
