@@ -1,6 +1,8 @@
 let controller = new AbortController();
 const cancelButton = document.getElementById('cancelButton');
-const processingBar = document.querySelector('.processing-bar')
+const processingProgress = document.querySelector('.processing-progress')
+const processingPercent = document.querySelector('.processing-percent')
+
 
 cancelButton.addEventListener('click', () => {
     controller.abort(); // Скасовуємо запит
@@ -15,6 +17,17 @@ cancelButton.addEventListener('click', () => {
     })
 });
 
+
+
+const initProgress = () => {
+    fetch('http://localhost:8000/init_progress', {
+        method: 'POST',
+    }).then((res) => {
+        console.log('Запит скасовано на сервері')
+    }).catch((error) => {
+        console.error('Помилка при скасуванні запиту на сервері:', error)
+    })
+}
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -57,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    initProgress()
     controller = new AbortController();
     const imageInput = document.getElementById('imageInput').files;
     const processType = document.getElementById('processType').value;
@@ -141,11 +155,19 @@ async function checkProcessingStatus() {
         if (!response.ok) {
             return
         }
+
         const status = await response.json();
+
         const percent = Math.round((100 / status.total) * status.progress);
-        processingBar.innerText = `${percent}%`;
-        processingBar.style.width = `${percent}%`
+        processingProgress.style.width = `${percent}%`;
+        processingPercent.innerText = `${percent}%`;
+
         console.log(status, percent)
+
+        if (status.status === 'cancelled') {
+            clearInterval(interval);
+        }
+
         // Відображаємо прогрес
         // resultImages.innerHTML = ''; // Очищаємо попередні результати
         // for (const jobId in status) {
@@ -156,9 +178,7 @@ async function checkProcessingStatus() {
         // }
 
         // Якщо всі завдання завершені, зупиняємо перевірку статусу
-        if (status.status === 'cancelled') {
-            clearInterval(interval);
-        }
+
     }, 100); // Запитуємо статус кожні 2 секунди
 }
 

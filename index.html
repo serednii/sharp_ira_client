@@ -8,120 +8,110 @@
     <link href="./style.css" rel="stylesheet" />
   </head>
   <body>
-    <h1>Завантажте зображення</h1>
-    <form id="uploadForm">
-      <input
-        type="file"
-        id="imageInput"
-        name="images"
-        accept="image/*"
-        multiple
-        required
-      />
+      <div class="container">
+        <h1>Завантажте зображення</h1>
+        <header class="header">
+<div class="form__wrapper">
 
-      <!-- Вибір типу обробки зображення -->
-      <label for="processType">Виберіть тип обробки:</label>
-      <select id="processType" name="processType">
-        <option value="resize">Змінити розмір</option>
-        <option value="grayscale">Чорно-біле</option>
-        <option value="rotate">Повернути на 90°</option>
-        <option value="blur">Розмиття</option>
-        <option value="brightness">Яскравість</option>
-        <option value="contrast">Контраст</option>
-        <option value="crop">Обрізати</option>
-      </select>
+        <form id="uploadForm">
+          <input
+            type="file"
+            id="imageInput"
+            name="images"
+            accept="image/*"
+            multiple
+            required
+          />
 
-      <!-- Параметри для обробки зображень -->
-      <div id="resizeOptions" class="options">
-        <label for="resizeWidth">Ширина (px):</label>
-        <input type="number" id="resizeWidth" name="resizeWidth" />
-        <label for="resizeHeight">Висота (px):</label>
-        <input type="number" id="resizeHeight" name="resizeHeight" />
+          <!-- Вибір типу обробки зображення -->
+          <label for="processType">Виберіть тип обробки:</label>
+          <select id="processType" name="processType">
+            <option value="blur">Розмиття</option>
+            <option value="resize">Змінити розмір</option>
+            <option value="grayscale">Чорно-біле</option>
+            <option value="rotate">Повернути на 90°</option>
+            <option value="brightness">Яскравість</option>
+            <option value="contrast">Контраст</option>
+            <option value="crop">Обрізати</option>
+          </select>
+
+          <!-- Параметри для обробки зображень -->
+          <div id="resizeOptions" class="options">
+            <label for="resizeWidth">Ширина (px):</label>
+            <input type="number" id="resizeWidth" name="resizeWidth" />
+            <label for="resizeHeight">Висота (px):</label>
+            <input type="number" id="resizeHeight" name="resizeHeight" />
+          </div>
+
+          <div id="rotateOptions" class="options">
+            <label for="rotateDegrees">Градуси повороту:</label>
+            <input
+              type="number"
+              id="rotateDegrees"
+              name="rotateDegrees"
+              value="90"
+            />
+          </div>
+
+          <div id="blurOptions" class="options">
+            <label for="blurLevel">Рівень розмиття:</label>
+            <input type="number" id="blurLevel" name="blurLevel" value="5" />
+          </div>
+
+          <div id="brightnessOptions" class="options">
+            <label for="brightnessLevel">Рівень яскравості (0-2):</label>
+            <input
+              type="number"
+              id="brightnessLevel"
+              name="brightnessLevel"
+              value="1"
+              step="0.1"
+              min="0"
+              max="2"
+            />
+          </div>
+
+          <div id="contrastOptions" class="options">
+            <label for="contrastLevel">Рівень контрасту (0-2):</label>
+            <input
+              type="number"
+              id="contrastLevel"
+              name="contrastLevel"
+              value="1"
+              step="0.1"
+              min="0"
+              max="2"
+            />
+          </div>
+
+          <div id="cropOptions" class="options">
+            <label for="cropWidth">Ширина обрізки (px):</label>
+            <input type="number" id="cropWidth" name="cropWidth" />
+            <label for="cropHeight">Висота обрізки (px):</label>
+            <input type="number" id="cropHeight" name="cropHeight" />
+          </div>
+
+          <button type="submit">Завантажити</button>
+        </form>
+        <button id="cancelButton">Скасувати обробку</button>
       </div>
 
-      <div id="rotateOptions" class="options">
-        <label for="rotateDegrees">Градуси повороту:</label>
-        <input
-          type="number"
-          id="rotateDegrees"
-          name="rotateDegrees"
-          value="90"
-        />
+        <div class="progress w3-light-grey w3-xlarge">
+          <h2>Progress</h2>
+          <div class="w3-container w3-blue percent" style="width: 100%"></div>
+          <div
+            class="w3-container w3-green processing-progress"
+            style="width: 0%"
+          ></div>
+          <p class="w3-container processing-percent">0%</p>
+        </div>
+      </header>
+      <main>
+
+        <h2 class="title-result">Результат:</h2>
+        <ul id="resultImages"></ul>
       </div>
-
-      <div id="blurOptions" class="options">
-        <label for="blurLevel">Рівень розмиття:</label>
-        <input type="number" id="blurLevel" name="blurLevel" value="5" />
-      </div>
-
-      <div id="brightnessOptions" class="options">
-        <label for="brightnessLevel">Рівень яскравості (0-2):</label>
-        <input
-          type="number"
-          id="brightnessLevel"
-          name="brightnessLevel"
-          value="1"
-          step="0.1"
-          min="0"
-          max="2"
-        />
-      </div>
-
-      <div id="contrastOptions" class="options">
-        <label for="contrastLevel">Рівень контрасту (0-2):</label>
-        <input
-          type="number"
-          id="contrastLevel"
-          name="contrastLevel"
-          value="1"
-          step="0.1"
-          min="0"
-          max="2"
-        />
-      </div>
-
-      <div id="cropOptions" class="options">
-        <label for="cropWidth">Ширина обрізки (px):</label>
-        <input type="number" id="cropWidth" name="cropWidth" />
-        <label for="cropHeight">Висота обрізки (px):</label>
-        <input type="number" id="cropHeight" name="cropHeight" />
-      </div>
-
-      <button type="submit">Завантажити</button>
-    </form>
-    <button id="cancelButton">Скасувати обробку</button>
-    <!-- <p>w3-tiny:</p> -->
-    <!-- <div class="w3-light-grey w3-tiny">
-      <div class="w3-container w3-green">50%</div>
-    </div> -->
-    <!-- 
-    <p>w3-small:</p>
-    <div class="w3-light-grey w3-small">
-      <div class="w3-container w3-green">50%</div>
-    </div> -->
-
-    <p>Progress:</p>
-    <div class="w3-light-grey">
-      <div class="w3-container w3-green processing-bar">50%</div>
-    </div>
-    <!-- 
-    <p>w3-large:</p>
-    <div class="w3-light-grey w3-large">
-      <div class="w3-container w3-green" style="width: 70%">50%</div>
-    </div>
-
-    <p>w3-xlarge:</p>
-    <div class="w3-light-grey w3-xlarge">
-      <div class="w3-container w3-green" style="width: 50%">50%</div>
-    </div>
-
-    <p>w3-xxlarge:</p>
-    <div class="w3-light-grey w3-xxlarge">
-      <div class="w3-container w3-green" style="width: 50%">50%</div>
-    </div> -->
-    <h2>Результат:</h2>
-    <ul id="resultImages"></ul>
-
+    </main>
     <script src="./js/index.js"></script>
   </body>
 </html>
