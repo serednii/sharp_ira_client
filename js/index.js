@@ -3,16 +3,23 @@ const cancelButton = document.getElementById('cancelButton');
 const processingProgress = document.querySelector('.processing-progress')
 const processingPercent = document.querySelector('.processing-percent')
 const downloadArchive = document.getElementById('download-archive');
+// const urlWorkServer = 'http://localhost:8000'
+const urlWorkServer = 'https://sharpiramainserver-production.up.railway.app'
+
+import './language.js';
+import './select_action.js';
+
 downloadArchive.addEventListener('click', function () {
     this.style.display = "none"
     console.log(this)
 })
 
+
 cancelButton.addEventListener('click', () => {
     controller.abort(); // Скасовуємо запит
     console.log('Запит скасовано');
 
-    fetch('http://localhost:8000/download-archive', {
+    fetch(`${urlWorkServer}/download-archive`, {
         method: 'GET',
     }).then((res) => {
         console.log('Запит скасовано на сервері')
@@ -25,7 +32,7 @@ cancelButton.addEventListener('click', () => {
     controller.abort(); // Скасовуємо запит
     console.log('Запит скасовано');
 
-    fetch('http://localhost:8000/cancel', {
+    fetch(`${urlWorkServer}/cancel`, {
         method: 'POST',
     }).then((res) => {
         console.log('Запит скасовано на сервері')
@@ -35,9 +42,8 @@ cancelButton.addEventListener('click', () => {
 });
 
 
-
 const initProgress = () => {
-    fetch('http://localhost:8000/init_progress', {
+    fetch(`${urlWorkServer}/init_progress`, {
         method: 'POST',
     }).then((res) => {
         console.log('Запит скасовано на сервері')
@@ -47,41 +53,7 @@ const initProgress = () => {
 }
 
 
-document.addEventListener('DOMContentLoaded', function () {
-    const processType = document.getElementById('processType');
-    const optionsDivs = document.querySelectorAll('.options');
 
-    const showOptions = (type) => {
-        optionsDivs.forEach((div) => div.style.display = 'none');
-
-        switch (type) {
-            case 'resize':
-                document.getElementById('resizeOptions').style.display = 'block';
-                break;
-            case 'rotate':
-                document.getElementById('rotateOptions').style.display = 'block';
-                break;
-            case 'blur':
-                document.getElementById('blurOptions').style.display = 'block';
-                break;
-            case 'brightness':
-                document.getElementById('brightnessOptions').style.display = 'block';
-                break;
-            case 'contrast':
-                document.getElementById('contrastOptions').style.display = 'block';
-                break;
-            case 'crop':
-                document.getElementById('cropOptions').style.display = 'block';
-                break;
-        }
-    };
-
-    processType.addEventListener('change', (e) => {
-        showOptions(e.target.value);
-    });
-
-    showOptions(processType.value);
-});
 
 
 
@@ -103,7 +75,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
     try {
         // Відправка даних на сервер через fetch
-        const response = await fetch(`http://localhost:8000/upload-multiple`, {
+        const response = await fetch(`${urlWorkServer}/upload-multiple`, {
             method: 'POST',
             body: formData,
             signal: controller.signal // Додаємо сигнал скасування
@@ -116,7 +88,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         // Отримання оброблених зображень як Blob
         const blobs = await response.json();
 
-        downloadArchive.href = blobs.downloadLink;
+        downloadArchive.href = urlWorkServer + blobs.downloadLink;
         downloadArchive.style.display = "inline-block"
 
         blobs.processedImages.forEach((blobUrl) => {
@@ -149,7 +121,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 async function checkProcessingStatus() {
     const interval = setInterval(async () => {
         try {
-            const response = await fetch('http://localhost:8000/status');
+            const response = await fetch(`${urlWorkServer}/status`);
             if (!response.ok) {
                 return
             }
