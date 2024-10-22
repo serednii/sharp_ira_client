@@ -8,7 +8,19 @@ body {
     margin: 0 auto;
 }
 
+.language-switcher {
+    width: 150px;
+}
+
 .header {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 50px;
+}
+
+.main-process {
     display: flex;
     justify-content: space-around;
     flex-wrap: wrap;
@@ -17,6 +29,11 @@ body {
 
 #download-archive {
     display: none;
+}
+
+.status-downloading.status-downloading {
+    color: #357ABD;
+    font-size: 1rem;
 }
 
 #uploadForm {
@@ -43,7 +60,6 @@ body {
 
 h1 {
     text-align: center;
-    width: 100%;
     margin: 0;
     color: #fff !important;
 }

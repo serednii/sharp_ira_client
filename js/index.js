@@ -3,14 +3,18 @@ const cancelButton = document.getElementById('cancelButton');
 const processingProgress = document.querySelector('.processing-progress')
 const processingPercent = document.querySelector('.processing-percent')
 const downloadArchive = document.getElementById('download-archive');
+const statusDownloading = document.querySelector('.status-downloading');
+const urlWorkServer = 'http://localhost:8000'
+// const urlWorkServer = 'https://sharpiramainserver-production.up.railway.app'
+
+import './language.js';
+import './select_action.js';
 
 downloadArchive.addEventListener('click', function () {
     this.style.display = "none"
     console.log(this)
 })
 
-// const urlWorkServer = 'http://localhost:8000'
-const urlWorkServer = 'https://sharpiramainserver-production.up.railway.app'
 
 cancelButton.addEventListener('click', () => {
     controller.abort(); // Скасовуємо запит
@@ -39,9 +43,13 @@ cancelButton.addEventListener('click', () => {
 });
 
 
-const initProgress = () => {
+const initProgress = (idQuery) => {
     fetch(`${urlWorkServer}/init_progress`, {
         method: 'POST',
+        body: JSON.stringify({ idQuery }),
+        headers: {
+            'Content-Type': 'application/json',  // Додаємо заголовок
+        },
     }).then((res) => {
         console.log('Запит скасовано на сервері')
     }).catch((error) => {
@@ -49,63 +57,38 @@ const initProgress = () => {
     })
 }
 
+let idQuery = null;
 
-document.addEventListener('DOMContentLoaded', function () {
-    const processType = document.getElementById('processType');
-    const optionsDivs = document.querySelectorAll('.options');
-
-    const showOptions = (type) => {
-        optionsDivs.forEach((div) => div.style.display = 'none');
-
-        switch (type) {
-            case 'resize':
-                document.getElementById('resizeOptions').style.display = 'block';
-                break;
-            case 'rotate':
-                document.getElementById('rotateOptions').style.display = 'block';
-                break;
-            case 'blur':
-                document.getElementById('blurOptions').style.display = 'block';
-                break;
-            case 'brightness':
-                document.getElementById('brightnessOptions').style.display = 'block';
-                break;
-            case 'contrast':
-                document.getElementById('contrastOptions').style.display = 'block';
-                break;
-            case 'crop':
-                document.getElementById('cropOptions').style.display = 'block';
-                break;
-        }
-    };
-
-    processType.addEventListener('change', (e) => {
-        showOptions(e.target.value);
-    });
-
-    showOptions(processType.value);
-});
 
 
 
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    initProgress()
+    idQuery = Math.floor(100000 + Math.random() * 900000)
+    initProgress(idQuery)
+    console.log(idQuery)
     controller = new AbortController();
     const imageInput = document.getElementById('imageInput').files;
     const processType = document.getElementById('processType').value;
     const form = document.getElementById("uploadForm")
     const formData = new FormData(form);
     formData.append('name', imageInput[0].name);
+    formData.append('idQuery', idQuery);
+
     console.log(formData)
 
     const resultImagesDiv = document.getElementById('resultImages');
     resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
 
-    checkProcessingStatus()
+    checkProcessingStatus(idQuery)
 
     try {
         // Відправка даних на сервер через fetch
+        console.log('strat strat strat strat strat strat strat strat ')
+        console.log('strat strat strat strat strat strat strat strat ')
+        console.log('strat strat strat strat strat strat strat strat ')
+
+
         const response = await fetch(`${urlWorkServer}/upload-multiple`, {
             method: 'POST',
             body: formData,
@@ -118,7 +101,12 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
         // Отримання оброблених зображень як Blob
         const blobs = await response.json();
+        console.log('blobs blobs blobs blobs blobs blobs blobs ')
+        console.log('blobs blobs blobs blobs blobs blobs blobs ')
+        console.log('blobs blobs blobs blobs blobs blobs blobs ')
 
+
+        statusDownloading.innerText = "Done"
         downloadArchive.href = urlWorkServer + blobs.downloadLink;
         downloadArchive.style.display = "inline-block"
 
@@ -149,27 +137,44 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     }
 });
 
-async function checkProcessingStatus() {
+async function checkProcessingStatus(idQuery) {
     const interval = setInterval(async () => {
+        console.log('setInterval')
         try {
-            const response = await fetch(`${urlWorkServer}/status`);
+            const response = await fetch(`${urlWorkServer}/status`, {
+                method: 'POST',
+                body: JSON.stringify({ idQuery }),
+                headers: {
+                    'Content-Type': 'application/json',  // Додаємо заголовок
+                },
+            })
+
             if (!response.ok) {
-                return
+                return;
             }
 
-            const status = await response.json();
+            let status = await response.json();
 
-            const percent = Math.round((100 / status.total) * status.progress);
+            console.log('status', status);
+            let percent = Math.round((100 / status.total) * status.progress);
+            console.log('percent', (typeof percent));
+
+            if (typeof percent !== "number" || Number.isNaN(percent) || percent < 0 || percent > 100) {
+                percent = 0;
+            }
+
             processingProgress.style.width = `${percent}%`;
             processingPercent.innerText = `${percent}%`;
-
+            statusDownloading.innerText = status.download;
+            console.log(status.download)
             console.log(status, percent)
 
             if (status.status === 'cancelled') {
                 clearInterval(interval);
             }
+
         } catch (error) {
-            console.error('Помилка під час перевірки статусу обробки:', error);
+            console.error('Помилка під час перевірки статусу обробки112:', error);
             clearInterval(interval);  // Зупиняємо інтервал у разі помилки
         }
 
@@ -184,7 +189,7 @@ async function checkProcessingStatus() {
 
         // Якщо всі завдання завершені, зупиняємо перевірку статусу
 
-    }, 100); // Запитуємо статус кожні 2 секунди
+    }, 300); // Запитуємо статус кожні 2 секунди
 }
 
 
