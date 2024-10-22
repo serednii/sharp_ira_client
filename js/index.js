@@ -43,37 +43,43 @@ cancelButton.addEventListener('click', () => {
 });
 
 
-const initProgress = (idQuery) => {
-    fetch(`${urlWorkServer}/init_progress`, {
-        method: 'POST',
-        body: JSON.stringify({ idQuery }),
-        headers: {
-            'Content-Type': 'application/json',  // Додаємо заголовок
-        },
-    }).then((res) => {
-        console.log('Запит скасовано на сервері')
-    }).catch((error) => {
-        console.error('Помилка при скасуванні запиту на сервері:', error)
-    })
-}
+const initProgress = async (idQuery) => {
+    try {
+        const res = await fetch(`${urlWorkServer}/init_progress`, {
+            method: 'POST',
+            body: JSON.stringify({ idQuery }),
+            headers: {
+                'Content-Type': 'application/json',  // Додаємо заголовок
+            },
+        });
+
+        if (!res.ok) {
+            throw new Error(`Помилка: ${res.status} ${res.statusText}`);
+        }
+
+        console.log('Дані ініційовано');
+    } catch (error) {
+        console.error('Помилка при ініціалізації запиту на сервері:', error);
+    }
+};
+
 
 let idQuery = null;
 
 
-
-
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    idQuery = Math.floor(100000 + Math.random() * 900000)
-    initProgress(idQuery)
-    console.log(idQuery)
-    controller = new AbortController();
     const imageInput = document.getElementById('imageInput').files;
-    const processType = document.getElementById('processType').value;
+
+    idQuery = Math.floor(100000 + Math.random() * 900000)
+    console.log(idQuery)
+
+    controller = new AbortController();
     const form = document.getElementById("uploadForm")
     const formData = new FormData(form);
     formData.append('name', imageInput[0].name);
     formData.append('idQuery', idQuery);
+    const res = await initProgress(idQuery)
 
     console.log(formData)
 
