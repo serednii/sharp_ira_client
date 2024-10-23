@@ -3,11 +3,16 @@ const cancelButton = document.getElementById('cancelButton');
 const processingProgress = document.querySelector('.processing-progress')
 const processingPercent = document.querySelector('.processing-percent')
 const downloadArchive = document.getElementById('download-archive');
+const statusDownloading = document.querySelector('.status-downloading');
 // const urlWorkServer = 'http://localhost:8000'
 const urlWorkServer = 'https://sharpiramainserver-production.up.railway.app'
 
 import './language.js';
 import './select_action.js';
+
+let idQuery = null;
+let downloadStatus = null
+let percentDownloading = null
 
 downloadArchive.addEventListener('click', function () {
     this.style.display = "none"
@@ -42,43 +47,108 @@ cancelButton.addEventListener('click', () => {
 });
 
 
-const initProgress = () => {
-    fetch(`${urlWorkServer}/init_progress`, {
-        method: 'POST',
-    }).then((res) => {
-        console.log('Запит скасовано на сервері')
-    }).catch((error) => {
-        console.error('Помилка при скасуванні запиту на сервері:', error)
-    })
-}
+const initProgress = async (idQuery) => {
+    try {
+        const res = await fetch(`${urlWorkServer}/init_progress`, {
+            method: 'POST',
+            body: JSON.stringify({ idQuery, urlWorkServer }),
+            headers: {
+                'Content-Type': 'application/json',  // Додаємо заголовок
+            },
+        });
+
+        if (!res.ok) {
+            throw new Error(`Помилка: ${res.status} ${res.statusText}`);
+        }
+
+        console.log('Дані ініційовано');
+    } catch (error) {
+        console.error('Помилка при ініціалізації запиту на сервері:', error);
+    }
+};
+
+
+// async function downloadFile(url) {
+//     const response = await fetch(url);
+//     const totalSize = +response.headers.get('Content-Length'); // Общий размер файла
+//     let downloadedSize = 0;
+
+//     const reader = response.body.getReader();
+//     const stream = new ReadableStream({
+//         async start(controller) {
+//             while (true) {
+//                 const { done, value } = await reader.read();
+//                 if (done) {
+//                     controller.close();
+//                     console.log('Скачивание завершено');
+//                     break;
+//                 }
+
+//                 downloadedSize += value.length;
+//                 console.log(`Downloaded: ${(downloadedSize / totalSize * 100).toFixed(2)}%`);
+
+//                 controller.enqueue(value); // Отправляем порцию данных для обработки
+//             }
+//         }
+//     });
+
+//     const newResponse = new Response(stream);
+//     const blob = await newResponse.blob();
+
+//     // Создание ссылки для скачивания файла
+//     const downloadLink = document.createElement('a');
+//     downloadLink.href = URL.createObjectURL(blob);
+//     downloadLink.download = 'downloaded_file';
+//     downloadLink.click();
+// }
+
+// // Начало скачивания файла
+// downloadFile('https://example.com/large-file.zip');
 
 
 
 
 
 
+
+
+
+
+//робочий варіант неміняти
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    initProgress()
-    controller = new AbortController();
     const imageInput = document.getElementById('imageInput').files;
-    const processType = document.getElementById('processType').value;
+    const resultImagesDiv = document.getElementById('resultImages');
     const form = document.getElementById("uploadForm")
     const formData = new FormData(form);
-    formData.append('name', imageInput[0].name);
-    console.log(formData)
 
-    const resultImagesDiv = document.getElementById('resultImages');
     resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
 
-    checkProcessingStatus()
+    idQuery = Math.floor(100000 + Math.random() * 900000)
+    console.log(idQuery)
+
+    controller = new AbortController();
+    formData.append('name', imageInput[0].name);
+    formData.append('idQuery', idQuery);
+
+    const res = await initProgress(idQuery)
+    checkProcessingStatus(idQuery)
+
+    console.log(formData)
+
+
 
     try {
         // Відправка даних на сервер через fetch
+        console.log('strat strat strat strat strat strat strat strat ')
+        console.log('strat strat strat strat strat strat strat strat ')
+        console.log('strat strat strat strat strat strat strat strat ')
+
+
         const response = await fetch(`${urlWorkServer}/upload-multiple`, {
             method: 'POST',
             body: formData,
-            signal: controller.signal // Додаємо сигнал скасування
+            signal: controller.signal, // Додаємо сигнал скасування
         });
 
         if (!response.ok) {
@@ -87,207 +157,173 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
         // Отримання оброблених зображень як Blob
         const blobs = await response.json();
+        console.log('blobs blobs blobs blobs blobs blobs blobs ')
+        console.log('blobs blobs blobs blobs blobs blobs blobs ')
+        console.log('blobs blobs blobs blobs blobs blobs blobs ')
 
-        downloadArchive.href = urlWorkServer + blobs.downloadLink;
+
+        statusDownloading.innerText = "Done"
+        downloadArchive.href = blobs.downloadLink;
         downloadArchive.style.display = "inline-block"
 
         blobs.processedImages.forEach((blobUrl) => {
             console.log(blobUrl)
             const li = document.createElement('li'); // Створюємо елемент списку
             const img = document.createElement('img'); // Створюємо елемент зображення
-            // const a = document.createElement('a');
-            // a.href = blobUrl[0].imageUrl
-            // a.target = "blank"
-            // a.download = blobUrl[0].fileName;  // Ім'я файлу для завантаження
-            // a.textContent = 'Завантажити зображення';  // Текст посилання
-
             img.src = blobUrl[0].imageBase64;
             img.alt = 'Оброблене зображення';
             img.style.maxWidth = '300px'; // Задаємо розмір для відображення
-            // li.appendChild(a)
             li.appendChild(img); // Вставляємо зображення у список
             resultImagesDiv.appendChild(li); // Додаємо елемент списку у UL
-            // Автоматичний клік, щоб завантажити файл
-            // setTimeout(() => {
-            //     // Автоматичний клік для завантаження файлу
-            //     a.click;
-            // }, 500);  // Невелика затримка в 100 мс
+
         });
     } catch (error) {
         console.error('Сталася помилка:', error);
     }
 });
 
-async function checkProcessingStatus() {
+//на xhr з контролем загрузки і вигрузки даних
+// document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+//     e.preventDefault();
+//     const imageInput = document.getElementById('imageInput').files;
+//     const resultImagesDiv = document.getElementById('resultImages');
+//     const form = document.getElementById("uploadForm")
+//     const formData = new FormData(form);
+
+//     resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
+
+//     idQuery = Math.floor(100000 + Math.random() * 900000)
+//     console.log(idQuery)
+
+//     controller = new AbortController();
+//     formData.append('name', imageInput[0].name);
+//     formData.append('idQuery', idQuery);
+
+//     const res = await initProgress(idQuery)
+//     checkProcessingStatus(idQuery)
+
+//     console.log(formData)
+
+
+
+//     try {
+//         // Відправка даних на сервер через fetch
+//         console.log('strat strat strat strat strat strat strat strat ')
+//         console.log('strat strat strat strat strat strat strat strat ')
+//         console.log('strat strat strat strat strat strat strat strat ')
+//         const xhr = new XMLHttpRequest();
+//         xhr.open('POST', `${urlWorkServer}/upload-multiple`, true);
+//         // Відстеження прогресу завантаження на сервер
+//         xhr.upload.addEventListener('progress', (event) => {
+//             if (event.lengthComputable) {
+//                 percentDownloading = parseInt(((event.loaded / event.total) * 100));
+//                 statusDownloading.innerText = `${downloadStatus}  ${percentDownloading}%`;
+//             }
+//         });
+//         // Відправка даних на сервер
+
+//         xhr.addEventListener('progress', (event) => {
+//             if (event.lengthComputable) {
+//                 percentDownloading = parseInt(((event.loaded / event.total) * 100));
+//                 statusDownloading.innerText = `${downloadStatus}  ${percentDownloading} %`;
+//             }
+//         });
+
+//         xhr.onload = () => {
+//             if (xhr.status === 200) {
+//                 const blobs = JSON.parse(xhr.response)
+//                 console.log(blobs)
+//                 console.log('blobs blobs blobs blobs blobs blobs blobs ')
+//                 console.log('blobs blobs blobs blobs blobs blobs blobs ')
+//                 console.log('blobs blobs blobs blobs blobs blobs blobs ')
+
+
+//                 statusDownloading.innerText = "Done"
+//                 downloadArchive.href = blobs.downloadLink;
+//                 downloadArchive.style.display = "inline-block"
+
+//                 blobs.processedImages.forEach((blobUrl) => {
+//                     console.log(blobUrl)
+//                     const li = document.createElement('li'); // Створюємо елемент списку
+//                     const img = document.createElement('img'); // Створюємо елемент зображення
+//                     img.src = blobUrl[0].imageBase64;
+//                     img.alt = 'Оброблене зображення';
+//                     img.style.maxWidth = '300px'; // Задаємо розмір для відображення
+//                     li.appendChild(img); // Вставляємо зображення у список
+//                     resultImagesDiv.appendChild(li); // Додаємо елемент списку у UL
+//                 });
+//                 // const link = document.createElement('a');
+//                 // link.href = URL.createObjectURL(blob);
+//                 // link.download = 'processed_images.zip';
+//                 // link.click();
+//             }
+//         };
+
+
+//         xhr.send(formData);
+
+//         // Отримання оброблених зображень як Blob
+
+
+//     } catch (error) {
+//         console.error('Сталася помилка:', error);
+//     }
+// });
+
+
+
+
+
+
+
+
+
+
+
+async function checkProcessingStatus(idQuery) {
     const interval = setInterval(async () => {
+        console.log('setInterval')
         try {
-            const response = await fetch(`${urlWorkServer}/status`);
+
+            const response = await fetch(`${urlWorkServer}/status`, {
+                method: 'POST',
+                body: JSON.stringify({ idQuery }),
+                headers: {
+                    'Content-Type': 'application/json',  // Додаємо заголовок
+                },
+            })
+
             if (!response.ok) {
-                return
+                return;
             }
 
-            const status = await response.json();
+            let status = await response.json();
 
-            const percent = Math.round((100 / status.total) * status.progress);
+            // console.log('status', status);
+            let percent = Math.round((100 / status.total) * status.progress);
+            if (typeof percent !== "number" || Number.isNaN(percent) || percent < 0 || percent > 100) {
+                percent = 0;
+            }
+
             processingProgress.style.width = `${percent}%`;
             processingPercent.innerText = `${percent}%`;
-
-            console.log(status, percent)
+            downloadStatus = status.download;
+            statusDownloading.innerText = downloadStatus + percentDownloading + " %";
 
             if (status.status === 'cancelled') {
                 clearInterval(interval);
             }
+
         } catch (error) {
-            console.error('Помилка під час перевірки статусу обробки:', error);
+            console.error('Помилка під час перевірки статусу обробки112:', error);
             clearInterval(interval);  // Зупиняємо інтервал у разі помилки
         }
 
-        // Відображаємо прогрес
-        // resultImages.innerHTML = ''; // Очищаємо попередні результати
-        // for (const jobId in status) {
-        //     const { progress, status: jobStatus } = status[jobId];
-        //     const li = document.createElement('li');
-        //     li.textContent = `Job ID: ${jobId}, Status: ${jobStatus}, Progress: ${progress}%`;
-        //     resultImages.appendChild(li);
-        // }
-
         // Якщо всі завдання завершені, зупиняємо перевірку статусу
 
-    }, 100); // Запитуємо статус кожні 2 секунди
+    }, 300); // Запитуємо статус кожні 2 секунди
 }
 
 
 
-// document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-//     e.preventDefault();
-//     const imageInput = document.getElementById('imageInput').files;
-//     const processType = document.getElementById('processType').value;
-//     const form = document.getElementById("uploadForm")
-//     const formData1 = new FormData(form)
 
-//     // Список пар ключ/значение
-//     for (let [name, value] of formData1) {
-//         console.log(`${name} = ${value}`)
-//     }
-//     const PORT = 8000; // Зміна порту для кожного сервера
-//     if (imageInput.length === 0) {
-//         alert('Будь ласка, оберіть хоча б одне зображення для завантаження');
-//         return;
-//     }
-
-//     // Формуємо форму для відправки
-//     const formData = new FormData();
-//     for (let i = 0; i < imageInput.length; i++) {
-//         formData.append('images', imageInput[i]);
-//     }
-//     formData.append('processType', processType); // Додаємо вибраний тип обробки
-//     console.log(formData)
-//     try {
-//         // Відправка зображень на сервер через fetch
-//         const response = await fetch(`http://localhost:${PORT}/upload-multiple`, {
-//             method: 'POST',
-//             body: formData
-//         });
-
-//         if (!response.ok) {
-//             throw new Error('Помилка під час завантаження зображень');
-//         }
-
-//         // Отримання оброблених зображень як Blob
-//         const blobs = await response.json();
-//         const resultImagesDiv = document.getElementById('resultImages');
-//         resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
-
-//         blobs.forEach((blobUrl) => {
-//             const li = document.createElement('li'); // Створюємо елемент списку
-//             const img = document.createElement('img'); // Створюємо елемент зображення
-//             img.src = blobUrl;
-//             img.alt = 'Оброблене зображення';
-//             img.style.maxWidth = '300px'; // Задаємо розмір для відображення
-//             li.appendChild(img); // Вставляємо зображення у список
-//             resultImagesDiv.appendChild(li); // Додаємо елемент списку у UL
-//         });
-//     } catch (error) {
-//         console.error('Сталася помилка:', error);
-//     }
-// });
-
-
-
-// document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-//     e.preventDefault();
-
-//     const imageInput = document.getElementById('imageInput').files;
-//     const processType = document.getElementById('processType').value;
-//     const servers = ['localhost:8000', 'localhost:8001', 'localhost:8002', 'localhost:8003', 'localhost:8004']; // Список серверів
-//     // const servers = ['localhost:8000']; // Список серверів
-
-//     const chunkSize = Math.ceil(imageInput.length / servers.length); // Розмір кожної частини
-
-//     if (imageInput.length === 0) {
-//         alert('Будь ласка, оберіть хоча б одне зображення для завантаження');
-//         return;
-//     }
-
-//     // Формуємо масив зображень
-//     const images = Array.from(imageInput);
-
-//     // Розділяємо зображення на частини
-//     const chunks = [];
-//     for (let i = 0; i < images.length; i += chunkSize) {
-//         chunks.push(images.slice(i, i + chunkSize));
-//     }
-
-//     // Функція для відправки частини зображень на сервер
-//     const sendChunkToServer = async (chunk, server) => {
-//         const formData = new FormData();
-//         chunk.forEach(image => {
-//             formData.append('images', image);
-//         });
-//         formData.append('processType', processType);
-
-//         const startTime = new Date(); // Зберігаємо початковий час
-//         const response = await fetch(`http://${server}/process-images`, {
-//             method: 'POST',
-//             body: formData
-//         });
-
-//         const endTime = new Date(); // Зберігаємо час після відповіді
-//         const elapsedTime = endTime - startTime; // Обчислюємо час роботи
-//         console.log(`Час роботи сервера ${server}: ${elapsedTime} мс`);
-
-//         if (!response.ok) {
-//             throw new Error(`Помилка під час завантаження на ${server}`);
-//         }
-
-//         return response.json(); // Повертаємо оброблені зображення
-//     };
-
-//     try {
-//         // Відправляємо всі частини асинхронно на різні сервери
-//         const promises = chunks.map((chunk, index) => {
-//             return sendChunkToServer(chunk, servers[index]);
-//         });
-
-//         // Чекаємо, поки всі запити завершаться
-//         const results = await Promise.all(promises);
-
-//         const resultImagesDiv = document.getElementById('resultImages');
-//         resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
-
-//         // Виводимо оброблені зображення
-//         results.forEach(blobs => {
-//             blobs.forEach(blobUrl => {
-//                 const li = document.createElement('li');
-//                 const img = document.createElement('img');
-//                 img.src = blobUrl;
-//                 img.alt = 'Оброблене зображення';
-//                 img.style.maxWidth = '300px'; // Задаємо розмір для відображення
-//                 li.appendChild(img);
-//                 resultImagesDiv.appendChild(li);
-//             });
-//         });
-//     } catch (error) {
-//         console.error('Сталася помилка:', error);
-//     }
-// });
