@@ -235,6 +235,12 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
                 statusDownloading.innerText = `${downloadStatus}  ${percentDownloading} %`;
             }
         });
+        // Обробка помилок
+        xhr.onerror = () => {
+            console.error('Помилка завантаження');
+            statusDownloading.innerText = "Помилка завантаження";
+            throw new Error('Network error');
+        };
 
         xhr.onload = () => {
             if (xhr.status === 200) {
