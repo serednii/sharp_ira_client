@@ -4,8 +4,8 @@ const processingProgress = document.querySelector('.processing-progress')
 const processingPercent = document.querySelector('.processing-percent')
 const downloadArchive = document.getElementById('download-archive');
 const statusDownloading = document.querySelector('.status-downloading');
-// const urlWorkServer = 'http://localhost:8000'
-const urlWorkServer = 'https://sharpiramainserver-production.up.railway.app'
+const urlWorkServer = 'http://localhost:8000'
+// const urlWorkServer = 'https://sharpiramainserver-production.up.railway.app'
 
 import './language.js';
 import './select_action.js';
@@ -49,7 +49,7 @@ cancelButton.addEventListener('click', () => {
 
 const initProgress = async (idQuery) => {
     try {
-        const res = await fetch(`${urlWorkServer}/init_progress`, {
+        const res = await fetch(`${urlWorkServer}/init`, {
             method: 'POST',
             body: JSON.stringify({ idQuery, urlWorkServer }),
             headers: {
@@ -205,7 +205,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     console.log(formData)
 
 
-
+    signal: controller.signal
     try {
         // Відправка даних на сервер через fetch
         console.log('strat strat strat strat strat strat strat strat ')
@@ -213,6 +213,13 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         console.log('strat strat strat strat strat strat strat strat ')
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${urlWorkServer}/upload-multiple`, true);
+
+        controller.signal.addEventListener('abort', () => {
+            xhr.abort();
+            console.log('Request aborted');
+            statusDownloading.innerText = "Скасовано";
+        });
+
         // Відстеження прогресу завантаження на сервер
         xhr.upload.addEventListener('progress', (event) => {
             if (event.lengthComputable) {
@@ -297,22 +304,21 @@ async function checkProcessingStatus(idQuery) {
                 return;
             }
 
-            let status = await response.json();
+            let result = await response.json();
 
             // console.log('status', status);
-            let percent = Math.round((100 / status.total) * status.progress);
+            let percent = Math.round((100 / result.total) * result.progress);
+
             if (typeof percent !== "number" || Number.isNaN(percent) || percent < 0 || percent > 100) {
                 percent = 0;
             }
 
             processingProgress.style.width = `${percent}%`;
             processingPercent.innerText = `${percent}%`;
-            downloadStatus = status.download;
+            downloadStatus = result.download;
             statusDownloading.innerText = downloadStatus + percentDownloading + " %";
-            // console.log(status.download);
-            // console.log(status, percent);
-
-            if (status.status === 'cancelled') {
+            console.log(result)
+            if (result.processingStatus === 'cancelled') {
                 clearInterval(interval);
             }
 
@@ -320,15 +326,6 @@ async function checkProcessingStatus(idQuery) {
             console.error('Помилка під час перевірки статусу обробки112:', error);
             clearInterval(interval);  // Зупиняємо інтервал у разі помилки
         }
-
-        // Відображаємо прогрес
-        // resultImages.innerHTML = ''; // Очищаємо попередні результати
-        // for (const jobId in status) {
-        //     const { progress, status: jobStatus } = status[jobId];
-        //     const li = document.createElement('li');
-        //     li.textContent = `Job ID: ${jobId}, Status: ${jobStatus}, Progress: ${progress}%`;
-        //     resultImages.appendChild(li);
-        // }
 
         // Якщо всі завдання завершені, зупиняємо перевірку статусу
 
