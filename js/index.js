@@ -1,57 +1,99 @@
 let controller = new AbortController();
+let idSetInterval = null;
 const cancelButton = document.getElementById('cancelButton');
-const processingProgress = document.querySelector('.processing-progress')
-const processingPercent = document.querySelector('.processing-percent')
 const downloadArchive = document.getElementById('download-archive');
-const statusDownloading = document.querySelector('.status-downloading');
-// const urlWorkServer = 'http://localhost:8000'
-const urlWorkServer = 'https://sharpiramainserver-production.up.railway.app'
+const serverStopped = document.getElementById('server_stopped');
+const pingServers = document.getElementById('ping_servers');
+const submit = document.getElementById('submit')
+const progressStatus = document.querySelector('.progress__status')
+const progressDownload = document.querySelector('.progress__container.download')
+const progressProcessing = document.querySelector('.progress__container.processing')
+const progressUnloading = document.querySelector('.progress__container.unloading')
+
+
+// const urlMainServer = 'http://localhost:8000'
+// const urlMainServer = 'https://sharpiramainserver-production.up.railway.app'
+const urlMainServer = 'https://renewed-peace-production.up.railway.app'
+
+pingServers.addEventListener('click', async () => {
+    for (let i = 8100; i <= 8120; i++) {
+        try {
+
+            fetch(`http://localhost:${i}/status`)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error('Сервер неотвечает')
+                    }
+                    return res.json()
+                })
+                .then(data => {
+                    console.log(data.st + " " + 'http://localhost' + i)
+                }).catch(() => console.log('Сервер неотвечает' + 'http://localhost' + i + ' error'))
+
+        } catch (error) {
+            console.log('http://localhost' + i + 'error')
+        }
+    }
+})
+
+
+serverStopped.addEventListener('click', async () => {
+    try {
+        const res = await fetch(`${urlMainServer}/killer`)
+        if (!res.ok) {
+            throw new Error('При остановке сервера произошла ошибка')
+        }
+        const data = await res.json()
+        console.log(data)
+
+    } catch (error) {
+        console.log(error)
+    }
+})
+
+
+
 
 import './language.js';
 import './select_action.js';
 
-let idQuery = null;
-let downloadStatus = null
-let percentDownloading = null
+let idQuery = 0;
+let downloadStatus = "";
+let percentDownloading = "";
 
 downloadArchive.addEventListener('click', function () {
-    this.style.display = "none"
-    console.log(this)
+    this.style.display = "none";
+    console.log(this);
 })
 
 
-cancelButton.addEventListener('click', () => {
-    controller.abort(); // Скасовуємо запит
-    console.log('Запит скасовано');
-
-    fetch(`${urlWorkServer}/download-archive`, {
-        method: 'GET',
-    }).then((res) => {
-        console.log('Запит скасовано на сервері')
-    }).catch((error) => {
-        console.error('Помилка при скасуванні запиту на сервері:', error)
-    })
-});
 
 cancelButton.addEventListener('click', () => {
     controller.abort(); // Скасовуємо запит
-    console.log('Запит скасовано');
+    clearInterval(idSetInterval);
+    clearProgress()
+    submit.disabled = false;
+    console.log('Запит скасовано', idQuery);
 
-    fetch(`${urlWorkServer}/cancel`, {
+    fetch(`${urlMainServer}/abort`, {
         method: 'POST',
+        body: JSON.stringify({ idQuery }),
+        headers: {
+            'Content-Type': 'application/json',  // Додаємо заголовок
+        },
     }).then((res) => {
         console.log('Запит скасовано на сервері')
     }).catch((error) => {
         console.error('Помилка при скасуванні запиту на сервері:', error)
     })
+
 });
 
-
-const initProgress = async (idQuery) => {
+const initProgress = async (idQuery, numberImage) => {
     try {
-        const res = await fetch(`${urlWorkServer}/init_progress`, {
+        const res = await fetch(`${urlMainServer}/init`, {
             method: 'POST',
-            body: JSON.stringify({ idQuery, urlWorkServer }),
+            body: JSON.stringify({ idQuery, urlMainServer, numberImage }),
             headers: {
                 'Content-Type': 'application/json',  // Додаємо заголовок
             },
@@ -60,164 +102,84 @@ const initProgress = async (idQuery) => {
         if (!res.ok) {
             throw new Error(`Помилка: ${res.status} ${res.statusText}`);
         }
+        return await res.json();
 
-        console.log('Дані ініційовано');
+        // console.log('Дані ініційовано');
     } catch (error) {
+        alert('Помилка на сервері спробуйте пізніше')
         console.error('Помилка при ініціалізації запиту на сервері:', error);
     }
 };
 
-
-// async function downloadFile(url) {
-//     const response = await fetch(url);
-//     const totalSize = +response.headers.get('Content-Length'); // Общий размер файла
-//     let downloadedSize = 0;
-
-//     const reader = response.body.getReader();
-//     const stream = new ReadableStream({
-//         async start(controller) {
-//             while (true) {
-//                 const { done, value } = await reader.read();
-//                 if (done) {
-//                     controller.close();
-//                     console.log('Скачивание завершено');
-//                     break;
-//                 }
-
-//                 downloadedSize += value.length;
-//                 console.log(`Downloaded: ${(downloadedSize / totalSize * 100).toFixed(2)}%`);
-
-//                 controller.enqueue(value); // Отправляем порцию данных для обработки
-//             }
-//         }
-//     });
-
-//     const newResponse = new Response(stream);
-//     const blob = await newResponse.blob();
-
-//     // Создание ссылки для скачивания файла
-//     const downloadLink = document.createElement('a');
-//     downloadLink.href = URL.createObjectURL(blob);
-//     downloadLink.download = 'downloaded_file';
-//     downloadLink.click();
-// }
-
-// // Начало скачивания файла
-// downloadFile('https://example.com/large-file.zip');
-
-
-
-
-
-
-
-
-
-
-//робочий варіант неміняти
-// document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-//     e.preventDefault();
-//     const imageInput = document.getElementById('imageInput').files;
-//     const resultImagesDiv = document.getElementById('resultImages');
-//     const form = document.getElementById("uploadForm")
-//     const formData = new FormData(form);
-
-//     resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
-
-//     idQuery = Math.floor(100000 + Math.random() * 900000)
-//     console.log(idQuery)
-
-//     controller = new AbortController();
-//     formData.append('name', imageInput[0].name);
-//     formData.append('idQuery', idQuery);
-
-//     const res = await initProgress(idQuery)
-//     checkProcessingStatus(idQuery)
-
-//     console.log(formData)
-
-
-
-//     try {
-//         // Відправка даних на сервер через fetch
-//         console.log('strat strat strat strat strat strat strat strat ')
-//         console.log('strat strat strat strat strat strat strat strat ')
-//         console.log('strat strat strat strat strat strat strat strat ')
-
-
-//         const response = await fetch(`${urlWorkServer}/upload-multiple`, {
-//             method: 'POST',
-//             body: formData,
-//             signal: controller.signal, // Додаємо сигнал скасування
-//         });
-
-//         if (!response.ok) {
-//             throw new Error('Помилка під час завантаження зображень');
-//         }
-
-//         // Отримання оброблених зображень як Blob
-//         const blobs = await response.json();
-//         console.log('blobs blobs blobs blobs blobs blobs blobs ')
-//         console.log('blobs blobs blobs blobs blobs blobs blobs ')
-//         console.log('blobs blobs blobs blobs blobs blobs blobs ')
-
-
-//         statusDownloading.innerText = "Done"
-//         downloadArchive.href = blobs.downloadLink;
-//         downloadArchive.style.display = "inline-block"
-
-//         blobs.processedImages.forEach((blobUrl) => {
-//             console.log(blobUrl)
-//             const li = document.createElement('li'); // Створюємо елемент списку
-//             const img = document.createElement('img'); // Створюємо елемент зображення
-//             img.src = blobUrl[0].imageBase64;
-//             img.alt = 'Оброблене зображення';
-//             img.style.maxWidth = '300px'; // Задаємо розмір для відображення
-//             li.appendChild(img); // Вставляємо зображення у список
-//             resultImagesDiv.appendChild(li); // Додаємо елемент списку у UL
-
-//         });
-//     } catch (error) {
-//         console.error('Сталася помилка:', error);
-//     }
-// });
-
-//на xhr з контролем загрузки і вигрузки даних
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const imageInput = document.getElementById('imageInput').files;
-    const resultImagesDiv = document.getElementById('resultImages');
-    const form = document.getElementById("uploadForm")
-    const formData = new FormData(form);
-
-    resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
-
-    idQuery = Math.floor(100000 + Math.random() * 900000)
-    console.log(idQuery)
-
-    controller = new AbortController();
-    formData.append('name', imageInput[0].name);
-    formData.append('idQuery', idQuery);
-
-    const res = await initProgress(idQuery)
-    checkProcessingStatus(idQuery)
-
-    console.log(formData)
-
-
-
     try {
+        const imageInput = document.getElementById('imageInput').files;
+        const form = document.getElementById("uploadForm")
+        const formData = new FormData(form);
+
+        const resultImagesDiv = document.getElementById('resultImages');
+        resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
+
+        idQuery = Math.floor(100000 + Math.random() * 900000)
+        console.log(idQuery)
+
+        formData.append('name', imageInput[0].name);
+        formData.append('idQuery', idQuery);
+
+        console.log(imageInput.length)
+
+        const data = await initProgress(idQuery, imageInput.length)
+        console.log(data.message)
+
+        console.log(data.ports)
+        if (data.ports >= 1) {
+            checkProcessingStatus(idQuery)
+            sendData(formData)
+
+
+        } else {
+            alert('Немає вільних серверів, Спробуйте пізніше')
+            console.log('Немає вільних серверів')
+        }
+
+    } catch (error) {
+        console.log(error)
+    }
+
+    // signal: controller.signal
+
+});
+
+
+async function sendData(formData) {
+    try {
+        const resultImagesDiv = document.getElementById('resultImages');
+        resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
+        submit.disabled = true;
+        clearProgress();
+
         // Відправка даних на сервер через fetch
         console.log('strat strat strat strat strat strat strat strat ')
         console.log('strat strat strat strat strat strat strat strat ')
         console.log('strat strat strat strat strat strat strat strat ')
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${urlWorkServer}/upload-multiple`, true);
+        xhr.open('POST', `${urlMainServer}/upload-multiple`, true);
+
+        controller.signal.addEventListener('abort', () => {
+            xhr.abort();
+            console.log('Request aborted');
+            progressStatus.innerText = "Скасовано";
+        });
+
         // Відстеження прогресу завантаження на сервер
         xhr.upload.addEventListener('progress', (event) => {
             if (event.lengthComputable) {
                 percentDownloading = parseInt(((event.loaded / event.total) * 100));
-                statusDownloading.innerText = `${downloadStatus}  ${percentDownloading}%`;
+                progressStatus.innerText = downloadStatus
+                progressUnloading.style.display = "block"
+                progressUnloading.children[1].style.width = `${percentDownloading}%`
+                progressUnloading.children[2].innerText = `${percentDownloading} %`
             }
         });
         // Відправка даних на сервер
@@ -225,9 +187,21 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         xhr.addEventListener('progress', (event) => {
             if (event.lengthComputable) {
                 percentDownloading = parseInt(((event.loaded / event.total) * 100));
-                statusDownloading.innerText = `${downloadStatus}  ${percentDownloading} %`;
+                progressStatus.innerText = downloadStatus
+                progressDownload.style.display = "block"
+                progressDownload.children[1].style.width = `${percentDownloading}%`
+                progressDownload.children[2].innerText = `${percentDownloading} %`
+                progressProcessing.children[1].style.width = '100%'
+                progressProcessing.children[2].innerText = '100 %'
             }
         });
+
+        // Обробка помилок
+        xhr.onerror = () => {
+            console.error('Помилка завантаження');
+            progressStatus.innerText = "Помилка завантаження";
+            throw new Error('Network error');
+        };
 
         xhr.onload = () => {
             if (xhr.status === 200) {
@@ -236,12 +210,12 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
                 console.log('blobs blobs blobs blobs blobs blobs blobs ')
                 console.log('blobs blobs blobs blobs blobs blobs blobs ')
                 console.log('blobs blobs blobs blobs blobs blobs blobs ')
+                submit.disabled = false;
 
-
-                statusDownloading.innerText = "Done"
+                progressStatus.innerText = "Done"
                 downloadArchive.href = blobs.downloadLink;
-                downloadArchive.style.display = "inline-block"
-
+                downloadArchive.style.display = "block"
+                clearInterval(idSetInterval);
                 blobs.processedImages.forEach((blobUrl) => {
                     console.log(blobUrl)
                     const li = document.createElement('li'); // Створюємо елемент списку
@@ -252,10 +226,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
                     li.appendChild(img); // Вставляємо зображення у список
                     resultImagesDiv.appendChild(li); // Додаємо елемент списку у UL
                 });
-                // const link = document.createElement('a');
-                // link.href = URL.createObjectURL(blob);
-                // link.download = 'processed_images.zip';
-                // link.click();
+
             }
         };
 
@@ -268,24 +239,14 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     } catch (error) {
         console.error('Сталася помилка:', error);
     }
-});
-
-
-
-
-
-
-
-
-
-
+}
 
 async function checkProcessingStatus(idQuery) {
-    const interval = setInterval(async () => {
-        console.log('setInterval')
+    idSetInterval = setInterval(async () => {
+        // console.log('setInterval')
         try {
 
-            const response = await fetch(`${urlWorkServer}/status`, {
+            const response = await fetch(`${urlMainServer}/status`, {
                 method: 'POST',
                 body: JSON.stringify({ idQuery }),
                 headers: {
@@ -297,33 +258,56 @@ async function checkProcessingStatus(idQuery) {
                 return;
             }
 
-            let status = await response.json();
+            let result = await response.json();
 
             // console.log('status', status);
-            let percent = Math.round((100 / status.total) * status.progress);
+            let percent = Math.round((100 / result.total) * result.progress);
+
             if (typeof percent !== "number" || Number.isNaN(percent) || percent < 0 || percent > 100) {
                 percent = 0;
             }
 
-            processingProgress.style.width = `${percent}%`;
-            processingPercent.innerText = `${percent}%`;
-            downloadStatus = status.download;
-            statusDownloading.innerText = downloadStatus + percentDownloading + " %";
+            downloadStatus = result.processingStatus;
 
-            if (status.status === 'cancelled') {
-                clearInterval(interval);
+
+            if (downloadStatus === "processing images") {
+                progressProcessing.style.display = "block"
+                progressStatus.innerText = downloadStatus
+                progressProcessing.children[1].style.width = `${percent}%`
+                progressProcessing.children[2].innerText = `${percent} %`
             }
+            console.log(result)
+
+
 
         } catch (error) {
             console.error('Помилка під час перевірки статусу обробки112:', error);
-            clearInterval(interval);  // Зупиняємо інтервал у разі помилки
+            clearInterval(idSetInterval);  // Зупиняємо інтервал у разі помилки
         }
 
         // Якщо всі завдання завершені, зупиняємо перевірку статусу
 
-    }, 300); // Запитуємо статус кожні 2 секунди
+    }, 700); // Запитуємо статус кожні 2 секунди
 }
 
 
+function clearProgress() {
+    progressStatus.innerText = "Let's start";
+
+    progressUnloading.style.display = "none";
+    progressProcessing.style.display = "none";
+    progressDownload.style.display = "none";
+    downloadArchive.style.display = "none";
+
+    progressUnloading.children[1].style.width = '0';
+    progressUnloading.children[2].innerText = '0%';
+
+    progressProcessing.children[1].style.width = '0';
+    progressProcessing.children[2].innerText = '0%';
 
 
+    progressDownload.children[1].style.width = '0';
+    progressDownload.children[2].innerText = '0%';
+
+
+}

@@ -82,8 +82,8 @@ function changeLanguage(lang) {
         languageTexts[lang].upload;
     document.querySelector("#cancelButton").textContent =
         languageTexts[lang].cancel;
-    document.querySelector(".w3-blue").textContent =
-        languageTexts[lang].progress;
+    // document.querySelector(".w3-blue")?.textContent =
+    //     languageTexts[lang].progress;
     document.querySelector("#download-archive").textContent =
         languageTexts[lang].download;
     document.querySelector(".title-result").textContent =

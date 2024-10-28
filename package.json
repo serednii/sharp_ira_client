@@ -4,6 +4,7 @@
   "main": "index.js",
   "homepage": "./",
   "scripts": {
+    "t": "nodemon node test.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "deploy": "gh-pages -d ./"
   },
@@ -12,5 +13,8 @@
   "description": "",
   "devDependencies": {
     "gh-pages": "^6.2.0"
+  },
+  "dependencies": {
+    "nodemon": "^3.1.7"
   }
 }
