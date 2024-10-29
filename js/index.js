@@ -11,9 +11,11 @@ const progressProcessing = document.querySelector('.progress__container.processi
 const progressUnloading = document.querySelector('.progress__container.unloading')
 const progressTitle = document.querySelector('.progress__title');
 const imageInput = document.getElementById('imageInput');
-const urlMainServer = 'http://localhost:8000';
+const resultImagesDiv = document.getElementById('resultImages');
+
+// const urlMainServer = 'http://localhost:8000';
 // const urlMainServer = 'https://sharpiramainserver-production.up.railway.app'
-// const urlMainServer = 'https://renewed-peace-production.up.railway.app'
+const urlMainServer = 'https://renewed-peace-production.up.railway.app'
 
 
 let idQuery = 0;
@@ -23,20 +25,33 @@ let percentDownloading = "";
 import './language.js';
 import './select_action.js';
 
+
+//завантажуємо файли по посиланню яке генерується автоматично коли завантажаться дані
+//Прискачаванні файлів архів на сервері видаляється а якщо не скачувати то видалиться через деякий час автоматично
 downloadArchive.addEventListener('click', function () {
+    //Ховаємо посилання на скачування так як воно вже непотрібне
     this.style.display = "none";
-    console.log(this);
 })
 
+
+//При виборі файлів користувачем перевіряємо їх обєм  
 imageInput.addEventListener('change', function () {
-    console.log(this.files)
+    // console.log(this.files)
+
+
+    //всі файли які ми вибрали
     const files = this.files;
+    //Загалтьний обєм в байтах
     const totalSize = Array.from(files).reduce((a, e) => a + e.size, 0)
-    const totalMb = ((totalSize / 1024) / 1024).toFixed(2)
-    progressTitle.innerText = `Прогрес totalSize ${totalMb} Mb`
+    //Переводимо в мегабайти
+    const totalMb = ((totalSize / 1024) / 1024).toFixed(2);
+    //Виводимо на екран
+    progressTitle.innerText = `Прогрес totalSize ${totalMb} Mb`;
     console.log(totalSize, totalMb);
+    //переввіряємо на максимально допустимий розмір
     // if (totalSize > 42_428_800) {
     //     alert(`Максимальний розмір файлів небільше 40 мега байт а ви вибрали ${totalMb} Mb`)
+    //Перезавантажуємо сторінку щоб очистити input
     //     location.reload()
     //     return
     // }
@@ -94,11 +109,14 @@ serverStopped.addEventListener('click', async () => {
 
 
 
-
+//Відміняємо обробку
 cancelButton.addEventListener('click', () => {
     controller.abort(); // Скасовуємо запит
+    //Зупиняємо таймер
     clearInterval(idSetInterval);
+    //Очишчаємо прогрес та інші поля
     clearProgress()
+    //Розблоковуємо кнопку відправки даних
     submit.disabled = false;
     console.log('Запит скасовано', idQuery);
 
@@ -135,6 +153,7 @@ const initProgress = async (idQuery, numberImage) => {
     } catch (error) {
         alert('Помилка на сервері спробуйте пізніше')
         clearProgress()
+        //Розблоковуємо кнопку відправки даних
         submit.disabled = false;
         console.error('Помилка при ініціалізації запиту на сервері:', error);
     }
@@ -143,28 +162,42 @@ const initProgress = async (idQuery, numberImage) => {
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
+
         //Дістаємо форму із HTML
         const form = document.getElementById("uploadForm")
+
         //Створюємо обєкт FormData і передаємо в конструктор форму
         const formData = new FormData(form);
-        const resultImagesDiv = document.getElementById('resultImages');
 
+        //Дістаємо елемент UL куди будемо скидувати готові фото
+        const resultImagesDiv = document.getElementById('resultImages');
+        //Очишщаємо його
         resultImagesDiv.innerHTML = ''; // Очищуємо попередні результат
 
+        //Генеруємо унікальний id код для кожного запиту, щоб розділити запити на сервері
         idQuery = Math.floor(100000 + Math.random() * 900000);
         console.log(idQuery);
+        //Додаємо id до даних які пошлемо на сервер
         formData.append('idQuery', idQuery);
 
-        // console.log(imageInput.files)
+        //Відправляємо попередній запит на сервер який нам створить робочі сервера
+        //по замовчування на 1 сервер 10 фото
+        //Якщо буде вільний хоть один сервер то процес буде дозволено
+        //дані можна опрацьовувати і на одному робочому сервері але це буде повільніше
+        const responseInit = await initProgress(idQuery, imageInput.files.length);
 
-        const responseInit = await initProgress(idQuery, imageInput.files.length)
         //Якщо існує хоть один вільний порт то дозволяємо відправку даних
         if (responseInit.ports >= 1) {
-            checkProcessingStatus(idQuery)
-            sendData(formData)
+            //Запускємо запити до ендпойнту "/status", який періодично питається у сервера про стан роботи 
+            checkProcessingStatus(idQuery);
+            //Відправляємо дані
+            sendData(formData);
         } else {
-            alert('Немає вільних серверів, Спробуйте пізніше')
-            clearProgress()
+            //якщо Немає вільних серверів виводимо повідомлення
+            alert('Немає вільних серверів, Спробуйте пізніше');
+            //Очишчаємо прогрес та інші поля
+            clearProgress();
+
             submit.disabled = false;
             console.log('Немає вільних серверів')
         }
@@ -180,8 +213,8 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
 async function sendData(formData) {
     try {
-        const resultImagesDiv = document.getElementById('resultImages');
         resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
+        //Заблоковуємо кнопку відправки даних
         submit.disabled = true;
         clearProgress();
 
@@ -231,6 +264,7 @@ async function sendData(formData) {
             alert('Помилка завантаження');
             clearProgress();
             clearInterval(idSetInterval);
+            //Розблоковуємо кнопку відправки даних
             submit.disabled = false;
             progressStatus.innerText = "Помилка завантаження";
             throw new Error('Network error', error);
@@ -247,7 +281,7 @@ async function sendData(formData) {
                 console.log(data);
                 console.log('blobs blobs blobs blobs blobs blobs blobs ')
                 //Виводимо результат
-                viveResult();
+                viveResult(data);
             }
         };
 
@@ -314,7 +348,7 @@ async function checkProcessingStatus(idQuery) {
 
 function viveResult(data) {
     progressStatus.innerText = "Done";
-    downloadArchive.href = data.downloadLink;
+    downloadArchive.href = data?.downloadLink;
     downloadArchive.style.display = "block";
 
     data.processedImages.forEach((blobUrl) => {
@@ -346,7 +380,6 @@ function clearProgress() {
 
     progressProcessing.children[1].style.width = '0';
     progressProcessing.children[2].innerText = '0%';
-
 
     progressDownload.children[1].style.width = '0';
     progressDownload.children[2].innerText = '0%';
