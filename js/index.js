@@ -9,11 +9,38 @@ const progressStatus = document.querySelector('.progress__status')
 const progressDownload = document.querySelector('.progress__container.download')
 const progressProcessing = document.querySelector('.progress__container.processing')
 const progressUnloading = document.querySelector('.progress__container.unloading')
-
-
-// const urlMainServer = 'http://localhost:8000'
+const progressTitle = document.querySelector('.progress__title');
+const imageInput = document.getElementById('imageInput');
+const urlMainServer = 'http://localhost:8000';
 // const urlMainServer = 'https://sharpiramainserver-production.up.railway.app'
-const urlMainServer = 'https://renewed-peace-production.up.railway.app'
+// const urlMainServer = 'https://renewed-peace-production.up.railway.app'
+
+
+let idQuery = 0;
+let downloadStatus = "";
+let percentDownloading = "";
+
+import './language.js';
+import './select_action.js';
+
+downloadArchive.addEventListener('click', function () {
+    this.style.display = "none";
+    console.log(this);
+})
+
+imageInput.addEventListener('change', function () {
+    console.log(this.files)
+    const files = this.files;
+    const totalSize = Array.from(files).reduce((a, e) => a + e.size, 0)
+    const totalMb = ((totalSize / 1024) / 1024).toFixed(2)
+    progressTitle.innerText = `Прогрес totalSize ${totalMb} Mb`
+    console.log(totalSize, totalMb);
+    // if (totalSize > 42_428_800) {
+    //     alert(`Максимальний розмір файлів небільше 40 мега байт а ви вибрали ${totalMb} Mb`)
+    //     location.reload()
+    //     return
+    // }
+})
 
 pingServers.addEventListener('click', async () => {
     for (let i = 8100; i <= 8120; i++) {
@@ -36,13 +63,25 @@ pingServers.addEventListener('click', async () => {
     }
 })
 
-
 serverStopped.addEventListener('click', async () => {
     try {
-        const res = await fetch(`${urlMainServer}/killer`)
+        const pauseSend = document.getElementById('pause_send')
+        console.log(pauseSend.value)
+
+
+        const res = await fetch(`${urlMainServer}/killer`, {
+            method: 'POST',
+            body: JSON.stringify({ pause: pauseSend.value }),
+            headers: {
+                'Content-Type': 'application/json',  // Додаємо заголовок
+            },
+        })
+
+
         if (!res.ok) {
             throw new Error('При остановке сервера произошла ошибка')
         }
+
         const data = await res.json()
         console.log(data)
 
@@ -53,18 +92,6 @@ serverStopped.addEventListener('click', async () => {
 
 
 
-
-import './language.js';
-import './select_action.js';
-
-let idQuery = 0;
-let downloadStatus = "";
-let percentDownloading = "";
-
-downloadArchive.addEventListener('click', function () {
-    this.style.display = "none";
-    console.log(this);
-})
 
 
 
@@ -107,6 +134,8 @@ const initProgress = async (idQuery, numberImage) => {
         // console.log('Дані ініційовано');
     } catch (error) {
         alert('Помилка на сервері спробуйте пізніше')
+        clearProgress()
+        submit.disabled = false;
         console.error('Помилка при ініціалізації запиту на сервері:', error);
     }
 };
@@ -114,32 +143,29 @@ const initProgress = async (idQuery, numberImage) => {
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-        const imageInput = document.getElementById('imageInput').files;
+        //Дістаємо форму із HTML
         const form = document.getElementById("uploadForm")
+        //Створюємо обєкт FormData і передаємо в конструктор форму
         const formData = new FormData(form);
-
         const resultImagesDiv = document.getElementById('resultImages');
-        resultImagesDiv.innerHTML = ''; // Очищуємо попередні результати
 
-        idQuery = Math.floor(100000 + Math.random() * 900000)
-        console.log(idQuery)
+        resultImagesDiv.innerHTML = ''; // Очищуємо попередні результат
 
-        formData.append('name', imageInput[0].name);
+        idQuery = Math.floor(100000 + Math.random() * 900000);
+        console.log(idQuery);
         formData.append('idQuery', idQuery);
 
-        console.log(imageInput.length)
+        // console.log(imageInput.files)
 
-        const data = await initProgress(idQuery, imageInput.length)
-        console.log(data.message)
-
-        console.log(data.ports)
-        if (data.ports >= 1) {
+        const responseInit = await initProgress(idQuery, imageInput.files.length)
+        //Якщо існує хоть один вільний порт то дозволяємо відправку даних
+        if (responseInit.ports >= 1) {
             checkProcessingStatus(idQuery)
             sendData(formData)
-
-
         } else {
             alert('Немає вільних серверів, Спробуйте пізніше')
+            clearProgress()
+            submit.disabled = false;
             console.log('Немає вільних серверів')
         }
 
@@ -161,8 +187,6 @@ async function sendData(formData) {
 
         // Відправка даних на сервер через fetch
         console.log('strat strat strat strat strat strat strat strat ')
-        console.log('strat strat strat strat strat strat strat strat ')
-        console.log('strat strat strat strat strat strat strat strat ')
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${urlMainServer}/upload-multiple`, true);
 
@@ -175,7 +199,9 @@ async function sendData(formData) {
         // Відстеження прогресу завантаження на сервер
         xhr.upload.addEventListener('progress', (event) => {
             if (event.lengthComputable) {
+
                 percentDownloading = parseInt(((event.loaded / event.total) * 100));
+
                 progressStatus.innerText = downloadStatus
                 progressUnloading.style.display = "block"
                 progressUnloading.children[1].style.width = `${percentDownloading}%`
@@ -186,47 +212,42 @@ async function sendData(formData) {
 
         xhr.addEventListener('progress', (event) => {
             if (event.lengthComputable) {
+
                 percentDownloading = parseInt(((event.loaded / event.total) * 100));
+
                 progressStatus.innerText = downloadStatus
                 progressDownload.style.display = "block"
                 progressDownload.children[1].style.width = `${percentDownloading}%`
                 progressDownload.children[2].innerText = `${percentDownloading} %`
+
                 progressProcessing.children[1].style.width = '100%'
                 progressProcessing.children[2].innerText = '100 %'
             }
         });
 
         // Обробка помилок
-        xhr.onerror = () => {
+        xhr.onerror = (error) => {
             console.error('Помилка завантаження');
+            alert('Помилка завантаження');
+            clearProgress();
+            clearInterval(idSetInterval);
+            submit.disabled = false;
             progressStatus.innerText = "Помилка завантаження";
-            throw new Error('Network error');
+            throw new Error('Network error', error);
         };
 
         xhr.onload = () => {
             if (xhr.status === 200) {
-                const blobs = JSON.parse(xhr.response)
-                console.log(blobs)
-                console.log('blobs blobs blobs blobs blobs blobs blobs ')
-                console.log('blobs blobs blobs blobs blobs blobs blobs ')
-                console.log('blobs blobs blobs blobs blobs blobs blobs ')
-                submit.disabled = false;
-
-                progressStatus.innerText = "Done"
-                downloadArchive.href = blobs.downloadLink;
-                downloadArchive.style.display = "block"
+                //Зупиняємо запит status
                 clearInterval(idSetInterval);
-                blobs.processedImages.forEach((blobUrl) => {
-                    console.log(blobUrl)
-                    const li = document.createElement('li'); // Створюємо елемент списку
-                    const img = document.createElement('img'); // Створюємо елемент зображення
-                    img.src = blobUrl[0].imageBase64;
-                    img.alt = 'Оброблене зображення';
-                    img.style.maxWidth = '300px'; // Задаємо розмір для відображення
-                    li.appendChild(img); // Вставляємо зображення у список
-                    resultImagesDiv.appendChild(li); // Додаємо елемент списку у UL
-                });
-
+                //Розблоковуємо кнопку відправки даних
+                submit.disabled = false;
+                //Перетворюємо дані із Json формату в обєкт
+                const data = JSON.parse(xhr.response);
+                console.log(data);
+                console.log('blobs blobs blobs blobs blobs blobs blobs ')
+                //Виводимо результат
+                viveResult();
             }
         };
 
@@ -234,7 +255,6 @@ async function sendData(formData) {
         xhr.send(formData);
 
         // Отримання оброблених зображень як Blob
-
 
     } catch (error) {
         console.error('Сталася помилка:', error);
@@ -271,8 +291,8 @@ async function checkProcessingStatus(idQuery) {
 
 
             if (downloadStatus === "processing images") {
-                progressProcessing.style.display = "block"
                 progressStatus.innerText = downloadStatus
+                progressProcessing.style.display = "block"
                 progressProcessing.children[1].style.width = `${percent}%`
                 progressProcessing.children[2].innerText = `${percent} %`
             }
@@ -288,6 +308,28 @@ async function checkProcessingStatus(idQuery) {
         // Якщо всі завдання завершені, зупиняємо перевірку статусу
 
     }, 700); // Запитуємо статус кожні 2 секунди
+}
+
+
+
+function viveResult(data) {
+    progressStatus.innerText = "Done";
+    downloadArchive.href = data.downloadLink;
+    downloadArchive.style.display = "block";
+
+    data.processedImages.forEach((blobUrl) => {
+        console.log(blobUrl)
+        const li = document.createElement('li'); // Створюємо елемент списку
+        const img = document.createElement('img'); // Створюємо елемент зображення
+        img.src = blobUrl.res[0].imageBase64;
+        // img.src = blobUrl.img.data;
+
+        img.alt = 'Оброблене зображення';
+        img.style.maxWidth = '300px'; // Задаємо розмір для відображення
+        li.appendChild(img); // Вставляємо зображення у список
+        resultImagesDiv.appendChild(li); // Додаємо елемент списку у UL
+    });
+
 }
 
 

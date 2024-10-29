@@ -13,6 +13,8 @@
   <div class="container">
     <header class="header">
       <h1>Завантажте зображення</h1>
+      <h3>максимальний розмір 50 Мб</h3>
+
       <div class="language-switcher">
         <label for="languageSelect">Виберіть мову:</label>
         <select id="languageSelect">
@@ -80,6 +82,7 @@
             <button id="submit" type="submit">Завантажити</button>
           </form>
           <button id="cancelButton">Скасувати обробку</button>
+          <input type="number" id="pause_send" name="pauseSend" />
           <button id="server_stopped">Server stopped</button>
           <button id="ping_servers">Ping Servers</button>
 

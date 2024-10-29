@@ -264,4 +264,9 @@ h2 {
     max-width: 100%;
     border: 2px solid #4A90E2;
     border-radius: 5px;
+    transition: scale 0.3s ease-in-out, rotate 0.3s ease-in-out;
+}
+
+#resultImages img:hover {
+    scale: 2;
 }
